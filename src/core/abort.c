@@ -21,6 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+/*!
+ * @file
+ * @brief brief
+ *****************************************************************************/
 #include <string.h>
 #include "abort.h"
 #include "protocol/protocol.h"
@@ -31,10 +35,26 @@
 
 jmp_buf g_pre_test;
 
+/*!
+ * @brief Aborts the current test, marking it as failed.
+ *
+ * Aborts the current test, marking it as failed.
+ *
+ * This function does not return.
+ *
+ *****************************************************************************/
 void criterion_abort_test(void) {
     longjmp(g_pre_test, 1);
 }
 
+/*!
+ * @brief todo
+ *
+ * detailed
+ *
+ * @param[in] msg printf formatted C String to assemble the message
+ *
+ *****************************************************************************/
 void criterion_test_die(const char *msg, ...) {
     va_list vl;
     va_start(vl, msg);

@@ -21,6 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+/*!
+ * @file
+ * @brief Contains is_extern_worker
+ *****************************************************************************/
 #include "protocol.h"
 
 volatile bool is_extern_worker = false;

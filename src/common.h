@@ -21,6 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+/*!
+ * @file
+ * @brief Includes common macros
+ *****************************************************************************/
 #ifndef COMMON_H_
 # define COMMON_H_
 
@@ -32,6 +36,17 @@
 # define INLINE
 #endif
 
+/*!
+ * @brief Returns a default value
+ *
+ * Returns X if X is not NULL. Otherwise Y is returned.
+ *
+ * @param[in] X Value to check
+ * @param[in] Y Value to return if X is NULL
+ *
+ * @return Returns X if X is not NULL. Otherwise Y is returned.
+ *
+ *****************************************************************************/
 # define DEF(X, Y) ((X) ? (X) : (Y))
 
 #endif /* !COMMON_H_ */

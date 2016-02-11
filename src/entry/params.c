@@ -21,6 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+/*!
+ * @file
+ * @brief Contains cli parameter handling for the main function
+ *****************************************************************************/
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <locale.h>

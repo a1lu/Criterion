@@ -21,12 +21,22 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+/*!
+ * @file
+ * @brief Contains client related structs and functions.
+ *****************************************************************************/
 #ifndef CLIENT_H_
 # define CLIENT_H_
 
 # include <khash.h>
 
-// order matters here
+/*!
+ * @brief Contains client states
+ * @enum client_state
+ *
+ * Order matters here
+ *
+ *****************************************************************************/
 enum client_state {
     CS_SETUP,
     CS_MAIN,
@@ -35,13 +45,17 @@ enum client_state {
 
     // The states belows are non-states that should not be
     // added in the state count
-    CS_ABORT,
-    CS_TIMEOUT,
+    CS_ABORT, //!< non-state, should not be added in the state count
+    CS_TIMEOUT, //!< non-state, should not be added in the state count
 };
 
-// always make it a power of 2
+/// always make it a power of 2
 # define CS_MAX_CLIENT_STATES 4
 
+/*!
+ * @brief Contains the kinds of different clients
+ *
+ *****************************************************************************/
 enum client_kind {
     WORKER,
     EXTERN,
