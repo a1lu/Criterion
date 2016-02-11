@@ -1,3 +1,7 @@
+/*!
+ * @file
+ * @brief no license
+ *****************************************************************************/
 #include "i18n.h"
 #include "criterion/assert.h"
 #include "criterion/internal/asprintf-compat.h"

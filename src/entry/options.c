@@ -21,6 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+/*!
+ * @file
+ * @brief Contains the definition of struct criterion_options
+ *****************************************************************************/
 # include "criterion/options.h"
 
 struct criterion_options criterion_options = {

@@ -21,6 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+/*!
+ * @file
+ * @brief brief
+ *****************************************************************************/
 #ifndef PIPE_INTERNAL_H_
 # define PIPE_INTERNAL_H_
 

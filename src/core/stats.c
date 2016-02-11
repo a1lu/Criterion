@@ -21,6 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+/*!
+ * @file
+ * @brief brief
+ *****************************************************************************/
 #include <string.h>
 #include <csptr/smalloc.h>
 #include "criterion/internal/common.h"

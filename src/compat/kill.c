@@ -21,6 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+/*!
+ * @file
+ * @brief brief
+ *****************************************************************************/
 #include "kill.h"
 #include "internal.h"
 #include "criterion/logging.h"

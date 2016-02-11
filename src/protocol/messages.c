@@ -21,6 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+/*!
+ * @file
+ * @brief brief
+ *****************************************************************************/
 #include <nanomsg/nn.h>
 #include <stdlib.h>
 #include "protocol/protocol.h"

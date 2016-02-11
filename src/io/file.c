@@ -1,3 +1,7 @@
+/*!
+ * @file
+ * @brief no license
+ *****************************************************************************/
 #include <criterion/redirect.h>
 
 int cr_file_match_str(FILE* f, const char *str) {

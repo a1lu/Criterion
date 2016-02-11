@@ -21,6 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+/*!
+ * @file
+ * @brief Types for tests
+ *****************************************************************************/
 #ifndef CRITERION_TYPES_H_
 # define CRITERION_TYPES_H_
 
@@ -39,10 +43,10 @@ using std::size_t;
  *  Enumerates the supported languages for tests
  */
 enum criterion_language {
-    CR_LANG_C,              /// C
-    CR_LANG_CXX,            /// C++
-    CR_LANG_OBJC,           /// Objective-C
-    CR_LANG_OBJCXX,         /// Objective-C++
+    CR_LANG_C,              //!< C
+    CR_LANG_CXX,            //!< C++
+    CR_LANG_OBJC,           //!< Objective-C
+    CR_LANG_OBJCXX,         //!< Objective-C++
 
     CR_LANG_SIZE_ // leave this at the end
 };
@@ -83,14 +87,14 @@ struct criterion_test_extra_data {
     unsigned line_;
     // Enf of private API
 
-    void (*init)(void);         /// The setup test fixture
-    void (*fini)(void);         /// The setup test fixture
-    int signal;                 /// The expected signal raised by the test (or 0 if none)
-    int exit_code;              /// The expected exit code returned by the test
-    bool disabled;              /// Whether the test is disabled or not
-    const char *description;    /// The description of a test
-    double timeout;             /// A timeout for the test in seconds
-    void *data;                 /// Extra user data
+    void (*init)(void);         //!< The setup test fixture
+    void (*fini)(void);         //!< The setup test fixture
+    int signal;                 //!< The expected signal raised by the test (or 0 if none)
+    int exit_code;              //!< The expected exit code returned by the test
+    bool disabled;              //!< Whether the test is disabled or not
+    const char *description;    //!< The description of a test
+    double timeout;             //!< A timeout for the test in seconds
+    void *data;                 //!< Extra user data
 };
 
 /**

@@ -21,6 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+/*!
+ * @file
+ * @brief Contains extglob matcher
+ *****************************************************************************/
 #ifndef EXTMATCH_H_
 # define EXTMATCH_H_
 
