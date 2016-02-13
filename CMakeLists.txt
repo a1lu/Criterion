@@ -62,7 +62,7 @@ endif ()
 include_directories(include src)
 add_subdirectory (src)
 
-cr_add_library(criterion SHARED
+cr_add_library(criterion STATIC
     SOURCES ${SOURCE_FILES}
     HEADERS ${INTERFACE_FILES}
     COMPONENT dev
