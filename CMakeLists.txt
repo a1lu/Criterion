@@ -62,7 +62,20 @@ endif ()
 include_directories(include src)
 add_subdirectory (src)
 
-cr_add_library(criterion STATIC
+if( CR_BUILD )
+    if (${CR_BUILD} STREQUAL "STATIC")
+        message(STATUS ${CR_BUILD})
+        set(BUILD_TYPE STATIC)
+    else()
+        set(BUILD_TYPE SHARED)
+    endif()
+else()
+    set(BUILD_TYPE SHARED)
+endif()
+
+message(STATUS "Build Criterion as ${BUILD_TYPE} lib")
+
+cr_add_library(criterion ${BUILD_TYPE}
     SOURCES ${SOURCE_FILES}
     HEADERS ${INTERFACE_FILES}
     COMPONENT dev
