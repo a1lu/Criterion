@@ -219,8 +219,8 @@ struct context globmatchS(struct context con)
             /*con.except=0;*/
             if(con.except)
             {
-                puts("! pattern matched");
-                return (struct context){.matched=1, .str=con.str};
+                /*puts("! pattern matched");*/
+                /*return (struct context){.matched=1, .str=con.str};*/
             }
         }
         /// TODO: malformed bracket strings
@@ -252,13 +252,13 @@ struct context globmatchS(struct context con)
                       /*return str;*/
                 /*break;*/
             case '?':
+                    puts("?");
                 /* Matches zero or one occurence of the given patterns */
                 if(con.pat[0]=='(')
                 {
                     /*printf("aa: c: %c p: %c\n",c ,p);*/
                     /*if(c == '\0')*/
                     /*return (struct context){.matched=1};*/
-                    puts("?");
                     /*printf("%s\n",pat+1);*/
                     --con.str;
                     struct ext_glob eg=findNextS((struct ext_glob){.cur_pat=con.pat});
@@ -293,13 +293,13 @@ struct context globmatchS(struct context con)
                 }
                 break;
             case '@':
+                    puts("@");
                 /* Matches one of the given patterns */
                 if(con.pat[0]=='(')
                 {
                     /*printf("aa: c: %c p: %c\n",c ,p);*/
                     if(c == '\0') /// TODO check this
                         return (struct context){.matched=0, .str=con.str};
-                    puts("@");
                     /*printf("%s\n",pat+1);*/
                     --con.str;
                     struct ext_glob eg=findNextS((struct ext_glob){.cur_pat=con.pat});
@@ -372,13 +372,13 @@ struct context globmatchS(struct context con)
 
                 break;
             case '*':
+                    puts("*");
                 /* Matches zero or more occurences of the given patterns */
                 if(con.pat[0]=='(')
                 {
                     /*printf("aa: c: %c p: %c\n",c ,p);*/
                     /*if(c == '\0')*/
                     /*return (struct context){.matched=1};*/
-                    puts("*");
                     /*printf("%s\n",pat+1);*/
                     --con.str;
                     struct ext_glob eg=findNextS((struct ext_glob){.cur_pat=con.pat});
@@ -419,13 +419,13 @@ struct context globmatchS(struct context con)
                 }
                 break;
             case '+':
+                    puts("+");
                 /* Matches one or more of the given patterns */
                 if(con.pat[0]=='(')
                 {
                     /*printf("aa: c: %c p: %c\n",c ,p);*/
                     if(c == '\0') /// TODO check this
                         return (struct context){.matched=0, .str=con.str};
-                    puts("+");
                     /*printf("%s\n",pat+1);*/
                     --con.str;
                     struct ext_glob eg=findNextS((struct ext_glob){.cur_pat=con.pat});
@@ -454,13 +454,13 @@ struct context globmatchS(struct context con)
                 }
                 break;
             case '!':
+                    puts("!");
                 /* Matches anything except one of the given patterns */
                 if(con.pat[0]=='(')
                 {
                     /*printf("aa: c: %c p: %c\n",c ,p);*/
                     if(c == '\0') /// TODO check this
-                        return (struct context){.matched=1, .str=con.str};
-                    puts("!");
+                        return (struct context){.matched=1^con.except, .str=con.str};
                     /*printf("%s\n",pat+1);*/
                     --con.str;
                     struct ext_glob eg=findNextS((struct ext_glob){.cur_pat=con.pat});
@@ -472,22 +472,20 @@ struct context globmatchS(struct context con)
                         struct context arg={.str=con.str, .pat=eg.cur_pat,
                             .pat_chunk_end=pat_end, .back_pat=back_pat,
                             .back_str=back_str, .except=1};
-                        /*printContext(arg);*/
                         res=globmatchS(arg);
-                        /*printContext(res);*/
                         if(res.matched==1)
                         {
-                            /*puts("rec matched");*/
-                            /*return res;*/
-                              return (struct context){.matched=0, .str=con.str};
-                            /*goto backtrack;*/
+                            /*return (struct context){.matched=0, .str=con.str};*/
+                            printf("goto backtrack\n");
+                            goto backtrack;
                         }
                         eg=findNextS(eg);
                     }
                     puts("ende !");
                     printContext(res);
                     con.pat=pat_end;
-                    con.str=res.str;
+                    back_pat=con.pat;
+                    back_str=--con.str;
                 }else{
                     /// TODO malformed string
                     goto literal;
@@ -518,6 +516,7 @@ struct context globmatchS(struct context con)
                           if (match == inverted)
                               goto backtrack;
                           con.pat = class;
+                          printf("[ match: %d ]\n", match);
                       }
                       break;
             case '\\':
