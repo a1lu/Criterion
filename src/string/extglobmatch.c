@@ -40,6 +40,11 @@ struct context{
     char const *back_str;
     char const *repeat_pat;
     char const *repeat_str;
+    char const **pat_ptr;
+    char const **end_ptr;
+    char const **str_ptr;
+    char *op_ptr;
+    char op;
 };
 
 struct ext_glob{
@@ -97,12 +102,23 @@ CR_NORETURN static void malformed_pattern(char p) {
     exit(3);
 }
 
-char const *repeat_stack[1000];
-char const * *repeat_ptr=NULL;
+static char const *stack_pat[100];
+static char const *stack_end[100];
+static char const *stack_str[100];
+static char stack_op[100];
 
 #define push(sp, n) (*((sp)++) = (n))
 #define pop(sp) (*--(sp))
-#define stack_empty(sp) !(sp-repeat_stack)
+#define stack_empty_p(sp) !(sp-stack_pat)
+
+/*#define push(sp, n) (*((sp)++) = (n))*/
+/*#define pop(sp) (*--(sp))*/
+#define stack_empty_e(sp) !(sp-stack_end)
+
+/*#define push(sp, n) (*((sp)++) = (n))*/
+/*#define pop(sp) (*--(sp))*/
+#define stack_empty_s(sp) !(sp-stack_str)
+#define stack_empty_o(sp) !(sp-stack_op)
 
 /**
  * glob_match - Shell-style pattern matching, like !fnmatch(pat, str, 0)
@@ -171,10 +187,12 @@ static int glob_match(struct context con) {
      * string starting at the not matching character.
      */
     int nested = con.nested;
-    if(con.repeat)
-    {
-        con.repeat_pat=pop(repeat_ptr);
-    }
+    push(con.op_ptr, con.op);
+    /*if(con.repeat)*/
+    /*{*/
+        /*con.repeat_pat=pop(con.pat_ptr);*/
+        /*con.pat_chunk_end=pop(con.end_ptr);*/
+    /*}*/
     /*
      * Loop over each token (character or class) in pat, matching
      * it against the remaining unmatched tail of str.  Return false
@@ -187,10 +205,12 @@ static int glob_match(struct context con) {
             case '(':
                 malformed_pattern(p);
                 break;
-            case '|': {
+            case '|':
+                {
                     if(!con.nested)
                         malformed_pattern(p);
                     int count = 1;
+                    // TODO use end_ptr?
                     while (count > 0) {
                         p = *con.pat++;
                         if (p == '(')
@@ -202,42 +222,46 @@ static int glob_match(struct context con) {
                 /* FALLTHROUGH */
             case ')':
                 con.nested--;
+                /* get op from stack */
+                char op='\0';
+                if(!stack_empty_o(con.op_ptr))
+                    op = pop(con.op_ptr);
+                      // TODO eval op, push it back
+
                 if (con.nested < 0) {
                     malformed_pattern(p);
-                }
-                if(con.nested > 0 || nested == 1) {
+                } else /* dont get a new repeat string if we in a !() pattern
+                        we only need this for repeating ops TODO better way */
+                if (con.pat == con.pat_chunk_end && op != '!') {
                     con.repeat_str = con.repeat_pat ? con.str : NULL;
-                    if (con.repeat && !stack_empty(repeat_ptr)) {
-                        con.repeat_pat=pop(repeat_ptr);
-                        push(repeat_ptr,con.repeat_pat);
-                    }
+                    push(con.str_ptr, con.repeat_str);
                 }
                 break;
             case '?':
                 /* Matches zero or one occurence of the given patterns */
                 if (con.pat[0] == '(') {
                     struct ext_glob eg = find_next((struct ext_glob)
-                                                        {.cur_pat = con.pat});
-                    int res;
-                    while (!eg.ret) {
-                        if(con.repeat_pat) {
-                            push(repeat_ptr,con.repeat_pat);
+                                                {.cur_pat = con.pat});
+                    /* Match zero occurence */
+                    struct context arg = con;
+                    arg.pat = eg.end_pat;
+                    arg.back_pat = back_pat; arg.back_str = back_str;
+                    int res = glob_match(arg);
+                    if (res == 1) {
+                        return res;
+                    } else {
+                        arg.op = '?';
+                        ++arg.nested;
+                        while (!eg.ret) {
+                            arg.pat=eg.cur_pat;
+                            res = glob_match(arg);
+                            if (res == 1) {
+                                return res;
+                            }
+                            eg = find_next(eg);
                         }
-                        struct context arg = {  .str = con.str,
-                                                .pat = eg.cur_pat,
-                                                .back_pat = back_pat,
-                                                .back_str = back_str,
-                                                .pat_chunk_end = con.pat_chunk_end,
-                                                .nested = con.nested + 1,
-                                                .repeat = con.repeat,
-                                                .repeat_pat = con.repeat_pat};
-                        res = glob_match(arg);
-                        if (res == 1) {
-                            return res;
-                        }
-                        eg = find_next(eg);
                     }
-                    con.pat = eg.end_pat;
+                    return 0;
                 } else {   /* Wildcard: anything but nul */
                     if (c == '\0')
                         return 0;
@@ -248,22 +272,17 @@ static int glob_match(struct context con) {
                 /* Matches one of the given patterns */
                 if (con.pat[0] == '(') {
                     struct ext_glob eg = find_next((struct ext_glob)
-                                                        {.cur_pat = con.pat});
+                                                    {.cur_pat = con.pat});
                     if (c == '\0') /// TODO check this
                         return 0;
                     int res;
+
+                    struct context arg = con;
+                    ++arg.nested; arg.op = '@';
+                    arg.back_pat = back_pat; arg.back_str = back_str;
+
                     while (!eg.ret) {
-                        if(con.repeat_pat) {
-                            push(repeat_ptr,con.repeat_pat);
-                        }
-                        struct context arg = {  .str = con.str,
-                                                .pat = eg.cur_pat,
-                                                .back_pat = back_pat,
-                                                .back_str = back_str,
-                                                .pat_chunk_end = con.pat_chunk_end,
-                                                .nested = con.nested + 1,
-                                                .repeat = con.repeat,
-                                                .repeat_pat = con.repeat_pat};
+                        arg.pat = eg.cur_pat;
                         res = glob_match(arg);
                         if (res == 1) {
                             return res;
@@ -279,35 +298,56 @@ static int glob_match(struct context con) {
                 if (con.pat[0] == '(')
                 {
                     struct ext_glob eg = find_next((struct ext_glob)
-                                                        {.cur_pat = con.pat});
+                                                    {.cur_pat = con.pat});
                     int res;
-                    char const ** sp=repeat_ptr;
-                    while (!eg.ret) {
-                        if(con.repeat_pat) {
-                            push(repeat_ptr,con.repeat_pat);
+                    char const ** sp = con.pat_ptr;
+
+                    struct context arg = con;
+                    arg.pat = eg.end_pat;
+                    arg.back_pat = back_pat; arg.back_str = back_str;
+
+                    res = glob_match(arg);
+                    if (res == 1) {
+                        return 1;
+                    } else {
+                        arg.repeat = 1;
+                        ++arg.nested;
+                        arg.op = '*';
+                        arg.pat_chunk_end = eg.end_pat;
+
+                        while (!eg.ret) {
+                                arg.pat = eg.cur_pat;
+                                arg.repeat_pat = eg.cur_pat;
+
+                            if(con.repeat_pat) {
+                                push(con.pat_ptr,con.repeat_pat);
+                            }
+                            /*push(con.pat_ptr,eg.cur_pat);*/
+                            if(con.pat_chunk_end)
+                            {
+                                push(con.end_ptr, con.pat_chunk_end);
+                            }
+                            /*push(con.end_ptr, eg.end_pat);*/
+                            /*struct context arg = {  .str = con.str,*/
+                                /*.pat = eg.cur_pat,*/
+                                /*.pat_chunk_end = eg.end_pat,*/
+                                /*.back_pat = back_pat,*/
+                                /*.back_str = back_str,*/
+                                /*.repeat = 1,*/
+                                /*.repeat_pat = eg.cur_pat,*/
+                                /*.nested = con.nested + 1,*/
+                                /*.pat_ptr = con.pat_ptr,*/
+                                /*.end_ptr = con.end_ptr};*/
+                            res = glob_match(arg);
+                            if (res == 1) {
+                                return res;
+                            }
+                            eg = find_next(eg);
+                            con.pat_ptr = sp;
                         }
-                        push(repeat_ptr,eg.cur_pat);
-                        struct context arg = {  .str = con.str,
-                                                .pat = eg.cur_pat,
-                                                .pat_chunk_end = eg.end_pat,
-                                                .back_pat = back_pat,
-                                                .back_str = back_str,
-                                                .repeat = 1,
-                                                .repeat_pat = eg.cur_pat,
-                                                .nested = con.nested + 1};
-                        res = glob_match(arg);
-                        if (res == 1) {
-                            return res;
-                        } else if (res == -1) {
-                            return res;
-                        }
-                        eg = find_next(eg);
-                        repeat_ptr=sp;
                     }
-                    con.pat = eg.end_pat;
-                    if(c =='\0' && *con.pat != '\0') {
-                        return -1;
-                    }
+                    /*con.pat = eg.end_pat;*/
+                    return 0;
                 } else { /* Any-length wildcard */
                     if  (*con.pat == '\0') { /* Optimize trailing * case */
                         return 1;
@@ -320,23 +360,37 @@ static int glob_match(struct context con) {
                 /* Matches one or more of the given patterns */
                 if (con.pat[0] == '(') {
                     struct ext_glob eg = find_next((struct ext_glob)
-                                                        {.cur_pat = con.pat});
+                            {.cur_pat = con.pat});
                     if (c == '\0') /// TODO check this
                         return 0;
                     int res;
+                    struct context arg = con;
+                    ++arg.nested; arg.op = '+';
+                    arg.back_pat = back_pat; arg.back_str = back_str;
+                    arg.pat_chunk_end = eg.end_pat; arg.repeat = 1;
+                    arg.repeat_pat = eg.cur_pat;
+
                     while (!eg.ret) {
                         if(con.repeat_pat) {
-                            push(repeat_ptr,con.repeat_pat);
+                            push(con.pat_ptr,con.repeat_pat);
                         }
-                        push(repeat_ptr,eg.cur_pat);
-                        struct context arg = {  .str = con.str,
-                                                .pat = eg.cur_pat,
-                                                .pat_chunk_end = eg.end_pat,
-                                                .back_pat = back_pat,
-                                                .back_str = back_str,
-                                                .repeat = 1,
-                                                .repeat_pat = eg.cur_pat,
-                                                .nested = con.nested + 1};
+                        /*push(con.pat_ptr,eg.cur_pat);*/
+                        if(con.pat_chunk_end)
+                        {
+                            push(con.end_ptr, con.pat_chunk_end);
+                        }
+                        /*push(con.end_ptr, eg.end_pat);*/
+                        arg.pat = eg.cur_pat;
+                        /*struct context arg = {  .str = con.str,*/
+                                                /*.pat = eg.cur_pat,*/
+                                                /*.pat_chunk_end = eg.end_pat,*/
+                                                /*.back_pat = back_pat,*/
+                                                /*.back_str = back_str,*/
+                                                /*.repeat = 1,*/
+                                                /*.repeat_pat = eg.cur_pat,*/
+                                                /*.nested = con.nested + 1,*/
+                                                /*.pat_ptr = con.pat_ptr,*/
+                                                /*.end_ptr = con.end_ptr};*/
                         res = glob_match(arg);
                         if (res == 1) {
                             return res;
@@ -351,14 +405,16 @@ static int glob_match(struct context con) {
                 /* Matches anything except one of the given patterns */
                 if (con.pat[0] == '(') {
                     struct ext_glob eg = find_next((struct ext_glob)
-                                                        {.cur_pat = con.pat});
-                    if (c == '\0') /// TODO check this
+                            {.cur_pat = con.pat});
+                    if (c == '\0' && *eg.end_pat == '\0') /// TODO check this
+                    {
                         return 1 ^ con.except;
+                    }
                     int res;
-                    char const ** sp=repeat_ptr;
+                    char const ** sp = con.pat_ptr;
                     while (!eg.ret) {
                         if(con.repeat_pat) {
-                            push(repeat_ptr,con.repeat_pat);
+                            push(con.pat_ptr,con.repeat_pat);
                         }
                         struct context arg = {  .str = con.str,
                                                 .pat = eg.cur_pat,
@@ -368,13 +424,15 @@ static int glob_match(struct context con) {
                                                 .except = 1,
                                                 .nested = con.nested + 1,
                                                 .repeat = con.repeat,
-                                                .repeat_pat = con.repeat_pat};
+                                                .repeat_pat = con.repeat_pat,
+                                                .pat_ptr = con.pat_ptr,
+                                                .end_ptr = con.end_ptr};
                         res = glob_match(arg);
                         if (res == 1) {
                             goto backtrack;
                         }
                         eg = find_next(eg);
-                        repeat_ptr=sp;
+                        con.pat_ptr = sp;
                     }
                     con.pat = eg.end_pat;
                     back_pat = con.pat;
@@ -423,33 +481,39 @@ static int glob_match(struct context con) {
                         return 1;
                     }
                     break;
+                }
+backtrack:
+                if (c == '\0' || (!back_pat && !con.repeat)) {
+                    return 0;
+                }
+                if (back_pat)
+                {
+                    /* No point continuing */
+                    /* Try again from last *, one character later in str. */
+                    con.pat = back_pat;
+                    con.str = ++back_str;
+                    con.nested = nested;
+                    break;
                 } else if (!con.except){
                     if (con.repeat && (con.pat >= con.pat_chunk_end)) {
                         /* try to match the pattern one more time */
                         con.pat = con.repeat_pat;
                         con.str = con.repeat_str;
                         con.nested = nested;
-                        if (!con.str) {
+                    } else if (con.repeat) {
+                        /* get previous repeat pattern */
+                        if(!stack_empty_p(con.pat_ptr) &&
+                                !stack_empty_e(con.end_ptr) &&
+                                !stack_empty_s(con.str_ptr)) {
+                            con.repeat_pat = pop(con.pat_ptr);
+                            con.pat_chunk_end = pop(con.end_ptr);
+                            con.repeat_str = pop(con.str_ptr);
+                            break;
+                        } else {
                             return 0;
                         }
-                        break;
-                    } else if(con.repeat && !stack_empty(repeat_ptr)) {
-                        /* get previous repeat pattern */
-                        con.repeat_pat = pop(repeat_ptr);
-                        if(con.repeat_pat)
-                            break;
                     }
                 }
-backtrack:
-                if (c == '\0' || !back_pat) {
-                    return 0;
-                }
-                /* No point continuing */
-                /* Try again from last *, one character later in str. */
-                con.pat = back_pat;
-                con.str = ++back_str;
-                con.nested = nested;
-                break;
         }
     }
 }
@@ -508,6 +572,7 @@ backtrack:
  */
 int extglob_match(char const *pat, char const *str)
 {
-    repeat_ptr = repeat_stack;
-    return glob_match((struct context){.pat = pat, .str = str});
+    return glob_match((struct context){.pat = pat, .str = str,
+                                    .pat_ptr = stack_pat, .end_ptr = stack_end,
+                                    .str_ptr = stack_str, .op_ptr = stack_op});
 }
