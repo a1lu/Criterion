@@ -27,12 +27,23 @@
 #include "protocol/messages.h"
 #include "criterion/internal/asprintf-compat.h"
 #include "criterion/criterion.h"
+#include "criterion/options.h"
 #include "io/event.h"
+#include "debugbreak.h"
 
 jmp_buf g_pre_test;
 
 void criterion_abort_test(void) {
+    if (criterion_options.crash)
+        debug_break();
+
     longjmp(g_pre_test, 1);
+}
+
+void criterion_continue_test(void)
+{
+    if (criterion_options.crash)
+        debug_break();
 }
 
 void criterion_test_die(const char *msg, ...) {
