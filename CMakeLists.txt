@@ -22,6 +22,7 @@ include (Submodules)
 include (Capabilities)
 include (Subprojects)
 include (PackageUtils)
+INCLUDE (CheckIncludeFiles)
 
 if (NOT WIN32)
   set (PIC_C_FLAGS "-fPIC")
@@ -95,6 +96,7 @@ endif ()
 # Project
 
 include_directories(include src)
+add_subdirectory (src/signals)
 add_subdirectory (src)
 
 cr_add_library(criterion SHARED
@@ -146,3 +148,7 @@ endif ()
 if (UPLOAD_DEB)
   include (DebUpload)
 endif ()
+
+
+
+target_link_libraries (criterion SigNames)
