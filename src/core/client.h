@@ -22,25 +22,27 @@
  * THE SOFTWARE.
  */
 #ifndef CLIENT_H_
-# define CLIENT_H_
+#define CLIENT_H_
 
-# include <khash.h>
+#include <khash.h>
+#include <boxfort.h>
 
-// order matters here
+/* order matters here */
 enum client_state {
     CS_SETUP,
     CS_MAIN,
     CS_TEARDOWN,
     CS_END,
 
-    // The states belows are non-states that should not be
-    // added in the state count
+    /* The states belows are non-states that should not be
+       added in the state count */
     CS_ABORT,
     CS_TIMEOUT,
+    CS_SKIP,
 };
 
-// always make it a power of 2
-# define CS_MAX_CLIENT_STATES 4
+/* always make it a power of 2 */
+#define CS_MAX_CLIENT_STATES    4
 
 enum client_kind {
     WORKER,
@@ -49,7 +51,7 @@ enum client_kind {
 
 struct client_ctx {
     enum client_kind kind;
-    struct worker *worker;
+    bxf_instance *instance;
     struct criterion_test_extra_data extern_test_data;
     struct criterion_test extern_test;
 
@@ -60,6 +62,7 @@ struct client_ctx {
     struct criterion_test_stats *tstats;
     struct criterion_test *test;
     struct criterion_suite *suite;
+    uint64_t start_time;
 };
 
 struct kh_ht_client_s;
@@ -80,7 +83,7 @@ struct client_ctx *process_client_message(struct server_ctx *ctx, const criterio
 
 void init_server_context(struct server_ctx *sctx, struct criterion_global_stats *gstats);
 void destroy_server_context(struct server_ctx *sctx);
-struct client_ctx *add_client_from_worker(struct server_ctx *sctx, struct client_ctx *ctx, struct worker *w);
+struct client_ctx *add_client_from_worker(struct server_ctx *sctx, struct client_ctx *ctx, bxf_instance *instance);
 void remove_client_by_pid(struct server_ctx *sctx, int pid);
 
 #endif /* !CLIENT_H_ */

@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#define _POSIX_SOURCE
 #include "kill.h"
 #include "internal.h"
 #include "log/logging.h"
@@ -32,12 +33,11 @@
 #include <assert.h>
 #include <signal.h>
 
-static INLINE void nothing(void) {}
-
 #ifdef VANILLA_WIN32
 static HANDLE cr_job;
 #else
-static void handle_sigterm(CR_UNUSED int signum) {
+static void handle_sigterm(CR_UNUSED int signum)
+{
     assert(signum == SIGTERM);
 
     kill(-getpid(), SIGTERM);
@@ -45,32 +45,34 @@ static void handle_sigterm(CR_UNUSED int signum) {
 }
 #endif
 
-void setup_parent_job(void) {
+void setup_parent_job(void)
+{
 #ifdef VANILLA_WIN32
-    // Put runner in its own job
+    /* Put runner in its own job */
     cr_job = CreateJobObject(NULL, NULL);
     if (!AssignProcessToJobObject(cr_job, GetCurrentProcess()))
         abort();
 #else
-    // Put runner in its own group
+    /* Put runner in its own group */
     setpgid(0, 0);
 
-    // Setup termination handlers
+    /* Setup termination handlers */
     sigset_t block_mask;
-    sigemptyset (&block_mask);
-    sigaddset (&block_mask, SIGINT);
-    sigaddset (&block_mask, SIGQUIT);
-    sigaddset (&block_mask, SIGTSTP);
+    sigemptyset(&block_mask);
+    sigaddset(&block_mask, SIGINT);
+    sigaddset(&block_mask, SIGQUIT);
+    sigaddset(&block_mask, SIGTSTP);
 
     struct sigaction sa = {
-         .sa_handler = handle_sigterm,
-         .sa_mask    = block_mask,
+        .sa_handler = handle_sigterm,
+        .sa_mask    = block_mask,
     };
     sigaction(SIGTERM, &sa, NULL);
 #endif
 }
 
-void cr_killall(void) {
+void cr_killall(void)
+{
     fflush(NULL);
 #ifdef VANILLA_WIN32
     if (!TerminateJobObject(cr_job, 1))
@@ -80,7 +82,8 @@ void cr_killall(void) {
 #endif
 }
 
-void cr_terminate(struct criterion_global_stats *stats) {
+void cr_terminate(struct criterion_global_stats *stats)
+{
     report(POST_ALL, stats);
     process_all_output(stats);
     log(post_all, stats);

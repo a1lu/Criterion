@@ -15,6 +15,7 @@ message phase {
 
         ABORT       = 5;
         TIMEOUT     = 6;
+        SKIP        = 7;
     }
 
     required kind phase = 1;
@@ -34,11 +35,21 @@ message death {
     optional int64 timestamp = 3;
 }
 
+message statistic {
+    required string key = 1;
+
+    oneof value {
+        uint64 num = 3;
+        string str = 4;
+    }
+}
+
 message assert {
     required string message = 1;
     required bool passed = 2;
     optional string file = 3;
     optional int64 line = 4;
+    optional int64 timestamp = 5;
 }
 
 message log {
@@ -50,6 +61,7 @@ message log {
 
     required level severity = 1;
     required string message = 2;
+    optional int64 timestamp = 3;
 }
 
 message ack {
@@ -71,6 +83,7 @@ message submessage {
 
         criterion.protocol.log          message         = 4;
         criterion.protocol.assert       assert          = 5;
+        criterion.protocol.statistic    statistic       = 6;
     }
 
 }

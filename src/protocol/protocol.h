@@ -22,13 +22,15 @@
  * THE SOFTWARE.
  */
 #ifndef PROTOCOL_H_
-# define PROTOCOL_H_
+#define PROTOCOL_H_
 
-# include <pb.h>
-# include <pb_encode.h>
-# include <pb_decode.h>
-# include "criterion.pb.h"
-# include "criterion/internal/preprocess.h"
+#include <pb.h>
+#include <pb_encode.h>
+#include <pb_decode.h>
+#include "criterion.pb.h"
+#include "criterion/internal/preprocess.h"
+#include "compat/process.h"
+#include "compat/time.h"
 
 enum protocol_version {
     PROTOCOL_V1 = 1,
@@ -36,16 +38,25 @@ enum protocol_version {
 
 extern volatile bool is_extern_worker;
 
-# define criterion_message_set_id(Msg)                                      \
-    do {                                                                    \
-        if (is_extern_worker) {                                             \
-            (Msg).id.uid = (char *) criterion_current_test->name;           \
-        } else {                                                            \
-            (Msg).id.pid = get_process_id();                                \
-        }                                                                   \
+#define criterion_message_set_id(Msg)                             \
+    do {                                                          \
+        if (is_extern_worker) {                                   \
+            (Msg).id.uid = (char *) criterion_current_test->name; \
+        } else {                                                  \
+            (Msg).id.pid = get_process_id();                      \
+        }                                                         \
     } while (0)
 
-# define criterion_message(Kind, ...)                                       \
+/* *INDENT-OFF* - remove when https://github.com/uncrustify/uncrustify/issues/667
+   gets fixed */
+# define criterion_message(Kind, ...)               \
+    criterion_message_nots(Kind,                    \
+            .timestamp = cri_timestamp_monotonic(), \
+            .has_timestamp = true,                  \
+            __VA_ARGS__                             \
+        )
+
+# define criterion_message_nots(Kind, ...)                                  \
     (criterion_protocol_msg) {                                              \
         .version = PROTOCOL_V1,                                             \
         .which_id = is_extern_worker                                        \
@@ -54,9 +65,12 @@ extern volatile bool is_extern_worker;
         .data = {                                                           \
             .which_value = criterion_protocol_submessage_ ## Kind ## _tag,  \
             .value = {                                                      \
-                .Kind = { __VA_ARGS__ },                                    \
+                .Kind = {                                                   \
+                    __VA_ARGS__                                             \
+                },                                                          \
             }                                                               \
         }                                                                   \
     }
+/* *INDENT-ON* */
 
 #endif /* !PROTOCOL_H_ */

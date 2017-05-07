@@ -22,16 +22,13 @@
  * THE SOFTWARE.
  */
 #ifndef COMMON_H_
-# define COMMON_H_
+#define COMMON_H_
 
-#ifdef __GNUC__
-# define INLINE __attribute__((always_inline)) inline
-#elif defined(_MSC_VER)
-# define INLINE __forceinline
-#else
-# define INLINE
-#endif
+#include <stdio.h>
+#include <stdlib.h>
 
-# define DEF(X, Y) ((X) ? (X) : (Y))
+#include "criterion/internal/common.h"
+
+#define DEF(X, Y)    ((X) ? (X) : (Y))
 
 #endif /* !COMMON_H_ */

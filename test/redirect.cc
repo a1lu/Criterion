@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 
-// set a timeout for I/O tests
+/* set a timeout for I/O tests */
 TestSuite(redirect, .timeout = 1);
 
 #if __GNUC__ >= 5
@@ -21,22 +21,22 @@ Test(redirect, mock) {
 #endif
 
 Test(redirect, mock_c) {
-    std::FILE* fmock = cr_mock_file_size(4096);
+    std::FILE *fmock = cr_mock_file_size(4096);
 
     std::fprintf(fmock, "Hello");
     std::fflush(fmock);
     std::rewind(fmock);
 
-    char contents[sizeof ("Hello")] = {0};
+    char contents[sizeof ("Hello")] = { 0 };
     fgets(contents, sizeof (contents), fmock);
 
     cr_assert_str_eq(contents, "Hello");
 }
 
 Test(redirect, assertions) {
-    std::FILE* f1 = cr_mock_file_size(4096);
-    std::FILE* f2 = cr_mock_file_size(4096);
-    std::FILE* f3 = cr_mock_file_size(4096);
+    std::FILE *f1 = cr_mock_file_size(4096);
+    std::FILE *f2 = cr_mock_file_size(4096);
+    std::FILE *f3 = cr_mock_file_size(4096);
 
     fprintf(f1, "Foo");
     fprintf(f2, "Foo");
@@ -65,7 +65,6 @@ Test(redirect, stdout_) {
     std::cout << "Foo" << std::flush;
 
     cr_expect_stdout_eq_str("Foo");
-    cr_expect_stdout_neq_str("Bar");
 }
 
 Test(redirect, stderr_) {
@@ -74,11 +73,11 @@ Test(redirect, stderr_) {
     std::cerr << "Foo" << std::flush;
 
     cr_expect_stderr_eq_str("Foo");
-    cr_expect_stderr_neq_str("Bar");
 }
 
 Test(redirect, stdin_) {
-    auto& f_cin = criterion::get_redirected_cin();
+    auto &f_cin = criterion::get_redirected_cin();
+
     f_cin << "Foo";
     f_cin.close();
 
@@ -86,5 +85,4 @@ Test(redirect, stdin_) {
     std::cin >> read;
 
     cr_expect_eq(read, "Foo");
-    cr_expect_neq(read, "Bar");
 }

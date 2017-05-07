@@ -21,10 +21,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-# include "criterion/options.h"
+#include "criterion/options.h"
 
-struct criterion_options criterion_options = {
+CR_API struct criterion_options criterion_options = {
     .logging_threshold = CRITERION_IMPORTANT,
     .logger            = &normal_logging,
     .measure_time      = true,
+    .debug_port        = 1234,
 };

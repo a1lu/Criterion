@@ -22,12 +22,15 @@
  * THE SOFTWARE.
  */
 #ifndef RUNNER_COROUTINE_H_
-# define RUNNER_COROUTINE_H_
+#define RUNNER_COROUTINE_H_
 
-# include "coroutine.h"
+#include <boxfort.h>
+#include "coroutine.h"
 
-struct worker *run_next_test(struct criterion_test_set *p_set,
-                             struct criterion_global_stats *p_stats,
-                             ccrContParam);
+bxf_instance *cri_run_next_test(struct criterion_test_set *p_set,
+        struct criterion_global_stats *p_stats,
+        const char *url,
+        struct client_ctx *client,
+        ccrContParam);
 
 #endif /* !RUNNER_COROUTINE_H_ */

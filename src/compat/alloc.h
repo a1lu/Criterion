@@ -22,14 +22,13 @@
  * THE SOFTWARE.
  */
 #ifndef COMPAT_ALLOC_H_
-# define COMPAT_ALLOC_H_
+#define COMPAT_ALLOC_H_
 
-# include "criterion/alloc.h"
-# include "posix.h"
+#include <boxfort.h>
+#include "criterion/alloc.h"
 
-# ifdef VANILLA_WIN32
-void init_inheritable_heap(void);
-int inherit_heap(HANDLE child_process);
-# endif
+void cri_alloc_init(void);
+void cri_alloc_term(void);
+bxf_arena cri_alloc_getarena(void);
 
 #endif /* !COMPAT_ALLOC_H_ */

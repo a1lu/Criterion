@@ -14,8 +14,6 @@ set(SOURCE_FILES
   src/core/runner_coroutine.c
   src/core/runner_coroutine.h
   src/core/coroutine.h
-  src/core/worker.c
-  src/core/worker.h
   src/core/stats.c
   src/core/stats.h
   src/core/ordered-set.c
@@ -60,6 +58,10 @@ set(SOURCE_FILES
   src/entry/options.c
   src/entry/params.c
   src/entry/entry.c
+  src/err.c
+  src/err.h
+  src/mutex.c
+  src/mutex.h
   src/protocol/criterion.pb.c
   src/protocol/criterion.pb.h
   src/protocol/protocol.c
@@ -71,6 +73,8 @@ set(SOURCE_FILES
   src/config.h
   src/string/extglobmatch.c
   src/string/extglobmatch.h
+  src/string/brz.c
+  src/string/brz.h
 
   dependencies/nanopb/pb_common.c
   dependencies/nanopb/pb_common.h
@@ -128,7 +132,7 @@ endif()
 
 configure_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/config.h.in"
-  "${CMAKE_CURRENT_SOURCE_DIR}/config.h"
+  "${CMAKE_CURRENT_BINARY_DIR}/config.h"
 )
 
 configure_file(
@@ -137,7 +141,7 @@ configure_file(
   @ONLY
 )
 
-install (FILES "${CMAKE_CURRENT_BINARY_DIR}/criterion.pc" DESTINATION "${CMAKE_INSTALL_PREFIX}/share/pkgconfig")
+install (FILES "${CMAKE_CURRENT_BINARY_DIR}/criterion.pc" DESTINATION "share/pkgconfig")
 
 set (SOURCE_FILES ${SOURCE_FILES} PARENT_SCOPE)
 set (INTERFACE_FILES ${INTERFACE_FILES} PARENT_SCOPE)

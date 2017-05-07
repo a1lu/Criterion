@@ -21,21 +21,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#include <assert.h>
 #include <errno.h>
 #include <nanomsg/nn.h>
 #include <nanomsg/reqrep.h>
+#include <string.h>
 
-#define URL "ipc://criterion.sock"
+#include "err.h"
+#include "compat/process.h"
 
-#define errno_ignore(Stmt) do { int err = errno; Stmt; errno = err; } while (0)
-
-int bind_server(void) {
-
+int cri_proto_bind(const char *url)
+{
     int sock = nn_socket(AF_SP, NN_REP);
+
     if (sock < 0)
         return -1;
 
-    if (nn_bind(sock, URL) < 0)
+    if (nn_bind(sock, url) < 0)
         goto error;
 
     return sock;
@@ -45,12 +47,14 @@ error: {}
     return -1;
 }
 
-int connect_client(void) {
+int cri_proto_connect(const char *url)
+{
     int sock = nn_socket(AF_SP, NN_REQ);
+
     if (sock < 0)
         return -1;
 
-    if (nn_connect (sock, URL) < 0)
+    if (nn_connect(sock, url) < 0)
         goto error;
 
     return sock;
@@ -60,6 +64,7 @@ error: {}
     return -1;
 }
 
-void close_socket(int sock) {
+void cri_proto_close(int sock)
+{
     nn_close(sock);
 }

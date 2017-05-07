@@ -22,21 +22,22 @@
  * THE SOFTWARE.
  */
 #ifndef CRITERION_ASPRINTF_COMPAT_H_
-# define CRITERION_ASPRINTF_COMPAT_H_
+#define CRITERION_ASPRINTF_COMPAT_H_
 
-# ifdef __cplusplus
-#  include <cstdarg>
-# else
-#  include <stdarg.h>
-# endif
+#ifdef __cplusplus
+# include <cstdarg>
+#else
+# include <stdarg.h>
+#endif
 
-# include "common.h"
+#include "common.h"
 
 CR_BEGIN_C_API
 
 CR_FORMAT(printf, 2, 3)
 CR_API int cr_asprintf(char **strp, const char *fmt, ...);
 CR_API int cr_vasprintf(char **strp, const char *fmt, va_list ap);
+CR_API void cr_asprintf_free(char *buf);
 
 CR_END_C_API
 

@@ -27,32 +27,39 @@
 #include "log/logging.h"
 #include "io/event.h"
 #include "io/asprintf.h"
+#include "mutex.h"
 
-int read_message(int sock, criterion_protocol_msg *message) {
-    int res;
+int read_message(int sock, criterion_protocol_msg *message)
+{
+    int read;
     unsigned char *buf = NULL;
-    int read = res = nn_recv(sock, &buf, NN_MSG, 0);
+
+    do {
+        read = nn_recv(sock, &buf, NN_MSG, 0);
+    } while (read < 0 && errno == EINTR);
 
     if (read <= 0)
         goto cleanup;
 
     pb_istream_t stream = pb_istream_from_buffer(buf, read);
     if (!pb_decode(&stream, criterion_protocol_msg_fields, message)) {
-        res = -2;
+        read = -2;
         goto cleanup;
     }
 
-    res = 1;
+    read = 1;
 cleanup:
     if (buf)
         nn_freemsg(buf);
-    return res;
+    return read;
 }
 
-int write_message(int sock, const criterion_protocol_msg *message) {
+int write_message(int sock, const criterion_protocol_msg *message)
+{
     int res = -1;
     size_t size;
     unsigned char *buf = NULL;
+
     if (!pb_get_encoded_size(&size, criterion_protocol_msg_fields, message))
         goto cleanup;
 
@@ -61,7 +68,12 @@ int write_message(int sock, const criterion_protocol_msg *message) {
     if (!pb_encode(&stream, criterion_protocol_msg_fields, message))
         goto cleanup;
 
-    int written = nn_send(sock, buf, size, 0);
+    int written;
+
+    do {
+        written = nn_send(sock, buf, size, 0);
+    } while (written < 0 && errno == EINTR);
+
     if (written <= 0 || written != (int) size)
         goto cleanup;
 
@@ -79,7 +91,24 @@ const char *message_names[] = {
     [criterion_protocol_submessage_assert_tag]  = "assert",
 };
 
-void cr_send_to_runner(const criterion_protocol_msg *message) {
+void cr_send_to_runner(const criterion_protocol_msg *message)
+{
+    static struct cri_mutex sync;
+    int err = cri_mutex_init_once(&sync);
+
+    if (err < 0) {
+        criterion_perror("Could not initialize the global message mutex: %s.\n",
+                strerror(-err));
+        abort();
+    }
+
+    err = cri_mutex_lock(&sync);
+    if (err < 0) {
+        criterion_perror("Could not lock the global message mutex: %s.\n",
+                strerror(-err));
+        abort();
+    }
+
     if (write_message(g_client_socket, message) != 1) {
         criterion_perror("Could not write the \"%s\" message down the event pipe: %s.\n",
                 message_names[message->data.which_value],
@@ -88,7 +117,18 @@ void cr_send_to_runner(const criterion_protocol_msg *message) {
     }
 
     unsigned char *buf = NULL;
-    int read = nn_recv(g_client_socket, &buf, NN_MSG, 0);
+    int read;
+
+    do {
+        read = nn_recv(g_client_socket, &buf, NN_MSG, 0);
+    } while (read < 0 && errno == EINTR);
+
+    err = cri_mutex_unlock(&sync);
+    if (err < 0) {
+        criterion_perror("Could not unlock the global message mutex: %s.\n",
+                strerror(-err));
+        abort();
+    }
 
     if (read <= 0) {
         criterion_perror("Could not read ack: %s.\n", nn_strerror(errno));
@@ -112,8 +152,10 @@ void cr_send_to_runner(const criterion_protocol_msg *message) {
         nn_freemsg(buf);
 }
 
-void send_ack(int sock, bool ok, const char *msg, ...) {
+void send_ack(int sock, bool ok, const char *msg, ...)
+{
     criterion_protocol_ack ack;
+
     ack.status_code = ok ? criterion_protocol_ack_status_OK : criterion_protocol_ack_status_ERROR;
     ack.message = NULL;
 
@@ -139,7 +181,12 @@ void send_ack(int sock, bool ok, const char *msg, ...) {
         abort();
     }
 
-    int written = nn_send(sock, buf, size, 0);
+    int written;
+
+    do {
+        written = nn_send(sock, buf, size, 0);
+    } while (written < 0 && errno == EINTR);
+
     if (written <= 0 || written != (int) size) {
         criterion_perror("Could not send ack: %s.\n", nn_strerror(errno));
         abort();
@@ -148,6 +195,7 @@ void send_ack(int sock, bool ok, const char *msg, ...) {
     free(buf);
 }
 
-void free_message(criterion_protocol_msg *msg) {
+void free_message(criterion_protocol_msg *msg)
+{
     pb_release(criterion_protocol_msg_fields, msg);
 }

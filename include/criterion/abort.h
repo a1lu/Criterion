@@ -21,10 +21,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+/**
+ * @file
+ * @brief Functions to abort and continue tests
+ *****************************************************************************/
 #ifndef CRITERION_ABORT_H_
-# define CRITERION_ABORT_H_
+#define CRITERION_ABORT_H_
 
-# include "internal/common.h"
+#include "internal/common.h"
 
 CR_BEGIN_C_API
 
@@ -36,12 +40,25 @@ CR_BEGIN_C_API
 CR_API CR_NORETURN void criterion_abort_test(void);
 
 /**
+ *  Aborts the current test, marking it as skipped.
+ *
+ *  This function does not return.
+ */
+CR_API CR_NORETURN void criterion_skip_test(const char *format, ...);
+
+/**
  *  Continues the current test.
  *
  *  Used as a counterpart to criterion_abort_test.
  */
-CR_INLINE static void criterion_continue_test(void) {}
+CR_API void criterion_continue_test(void);
 
+/**
+ *  Kills the current test, marking it as failed.
+ *
+ *  @param[in] msg printf like format string
+ *  @param[in] ... Additional arguments depending on msg
+ */
 CR_API void criterion_test_die(const char *msg, ...);
 
 CR_END_C_API

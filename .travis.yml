@@ -2,120 +2,115 @@ language: c
 
 sudo: false
 
-addons:
-  apt:
-    sources:
-    - deadsnakes
-    packages:
-    - python3.5
-
-_anchors:
+_packages:
   - &gcc49-packages
     apt:
       sources:
       - ubuntu-toolchain-r-test
-      - deadsnakes
       packages:
-      - python3.5
       - gcc-4.9
       - g++-4.9
-      - gobjc-4.9
-      - gnustep-devel
+
+_stylecheck: &stylecheck
+  compiler: uncrustify
+  language: cpp
+  before_install:
+    - if [[ "$TRAVIS_PULL_REQUEST" == false ]]; then exit 0; fi
+    - ./.cmake/install-uncrustify.sh
+    - export PATH="$PATH:$HOME/bin"
+    - >
+        export SOURCES=$(find src include test samples \( \
+          -type f \( \
+            -iname "*.c" -or \
+            -iname "*.h" -or \
+            -iname "*.cc" -or \
+            -iname "*.hxx" \
+          \) -and -not \
+          -iname "*.pb.*" \))
+    - export STYLE_OK=true
+  script:
+    - >
+        for f in $SOURCES; do
+          if ! uncrustify -q --check -c .uncrustify.cfg $f; then
+            uncrustify -q -c .uncrustify.cfg -f $f | git --no-pager diff --no-index --color=always $f -
+            export STYLE_OK=false
+          fi
+        done
+    - $STYLE_OK
+  after_success:
+    - echo "Style check passed."
 
 matrix:
   include:
+    - *stylecheck
+
     # Linux Debug, GCC 4.9
-    - compiler: gcc-4.9
+    - os: linux
+      compiler: gcc-4.9
       addons: *gcc49-packages
       env:
-        CONFIGURATION: Debug
-        GCOV: gcov-4.9
-        COVERAGE: "ON"
-    # Linux Release, GCC 4.9
-    - compiler: gcc-4.9
-      addons: *gcc49-packages
-      env:
-        CONFIGURATION: Release
+        - CONFIGURATION=Debug
+        - COVERAGE=ON
+
     # Linux RelWithDebInfo, GCC 4.9
-    - compiler: gcc-4.9
+    - os: linux
+      compiler: gcc-4.9
       addons: *gcc49-packages
       env:
-        CONFIGURATION: RelWithDebInfo
-        DEPLOY: true
+        - CONFIGURATION=RelWithDebInfo
+        - DEPLOY=true
+        # Coverity token
+        - secure: >-
+            n6BHG86ISeYSAVE/i7m1K+XVW0j8PrJ5JxoJwhAGBb1
+            hkCn9sWybGo1HzZsf7rxpkQh/5Va4i+eyOrUt7VWAuF
+            EJN2+mEWqERkWZxiXrS3N9xi74cPFI79eDOTFnPm13e
+            diUX8Ts+IuFy890+tsNHqkEn055l6yOVMtj1LWWtRs=
+
     # Linux Debug, GCC 4.6
-    - compiler: gcc
-      env: CONFIGURATION=Debug TESTS=OFF
-    # Linux Release, GCC 4.6
-    - compiler: gcc
-      env: CONFIGURATION=Release TESTS=OFF
+    - os: linux
+      compiler: gcc
+      env: CONFIGURATION=Debug
+
     # Linux RelWithDebInfo, GCC 4.6
-    - compiler: gcc
-      env: CONFIGURATION=RelWithDebInfo TESTS=OFF
+    - os: linux
+      compiler: gcc
+      env: CONFIGURATION=RelWithDebInfo
+
     # OSX Debug, GCC 4.9
     - os: osx
       compiler: gcc-4.9
       env:
-        CONFIGURATION: Debug
-        GCOV: gcov-4.9
-        COVERAGE: "ON"
-    # OSX Release, GCC 4.9
-    - os: osx
-      compiler: gcc-4.9
-      env: CONFIGURATION=Release
+        - CONFIGURATION=Debug
+        - GCOV=gcov-4.9
+        - COVERAGE=ON
+
     # OSX RelWithDebInfo, GCC 4.9
     - os: osx
       compiler: gcc-4.9
       env: CONFIGURATION=RelWithDebInfo
+
     # OSX Debug, Clang
     - os: osx
       compiler: clang
-      env:
-        CONFIGURATION: Debug
-    # OSX Release, Clang
-    - os: osx
-      compiler: clang
-      env:
-        CONFIGURATION: Release
+      env: CONFIGURATION=Debug
+
     # OSX RelWithDebInfo, Clang
     - os: osx
       compiler: clang
       env:
-        CONFIGURATION: RelWithDebInfo
-        DEPLOY: true
+        - CONFIGURATION=RelWithDebInfo
+        - DEPLOY=true
 
   allow_failures:
     - compiler: gcc
 
 before_install:
   - |
-      if [ "$TRAVIS_OS_NAME" = "osx" ]; then
-        brew update
-        brew install pcre
-      fi
-  - |
-      if [ "$TRAVIS_OS_NAME" = "osx" ] && [ "$CC" = "clang" ]; then
-        brew unlink cmake
-        brew install llvm cmake
-      fi
-  - |
       if [ "${TESTS:-ON}" = "ON" ]; then
         if [ "$TRAVIS_OS_NAME" = "osx" ]; then
-          brew install python3
-          export PATH="$(python3 -m site --user-base)/bin:$PATH"
-          export PYTHON_BIN="python3"
-        else
-          curl -L https://bootstrap.pypa.io/get-pip.py | python3.5 - --user
-          export PYTHON_BIN="python3.5"
+          export PATH="$(python -m site --user-base)/bin:$PATH"
         fi
-
-        pip3 install --user cram==0.6
-
-        # Patch buggy cram on OSX
-        if [ "$TRAVIS_OS_NAME" = "osx" ]; then
-          patch "$(python3 -m site --user-base)/lib/python/site-packages/cram.py" .cmake/cram-osx.patch
-        fi
-
-        cram --version
+        travis_retry pip install --user cram==0.7
       fi
   - export CXX=${CC/gcc/g++}; export CXX=${CXX/clang/clang++}
   - $CC --version
@@ -135,7 +130,7 @@ script:
   - |
       if [ "${TESTS:-ON}" = "ON" ]; then
         TERM=dumb cmake --build . --target criterion_tests -- -j4
-        ctest
+        ctest --output-on-failure -j4 --timeout=20
       else
         TERM=dumb cmake --build . -- -j4
       fi
@@ -147,23 +142,42 @@ after_success:
         bash <(curl -s https://codecov.io/bash)
       fi
 
-after_failure:
-  - |
-      if [ "${TESTS:-ON}" = "ON" ]; then
-        cat Testing/Temporary/LastTest.log samples/*.{out,err} ../samples/tests/*.{out,err}
-      fi
-
 before_deploy:
   - make install
-  - tar -cvjf criterion-${TRAVIS_TAG}-${TRAVIS_OS_NAME}-x86_64.tar.bz2 criterion-${TRAVIS_TAG}
+  - tar -cvjf ../criterion-${TRAVIS_TAG}-${TRAVIS_OS_NAME}-x86_64.tar.bz2 criterion-${TRAVIS_TAG}
+  - cd ..
+  - |
+      if [ "$TRAVIS_OS_NAME" = "osx" ]; then
+        brew install gnu-tar --with-default-names
+        export PATH="/usr/local/bin:$PATH"
+      fi
+  - ./.cmake/git-archive-all.sh --prefix criterion-${TRAVIS_TAG} criterion-${TRAVIS_TAG}.tar && bzip2 $_
+
+addons:
+  coverity_scan:
+    project:
+      name: "Snaipe/Criterion"
+      description: "A KISS, Cross-platform C unit testing framework"
+    notification_email: franklinmathieu@gmail.com
+    build_command_prepend: "cmake ."
+    build_command: "make -j4"
+    branch_pattern: coverity_scan
 
 deploy:
   provider: releases
+  edge:
+    branch: releases-fix
   skip_cleanup: true
-  api_key:
-    secure: d3l2Ohb2FF3tSXku1d0ASR5dntdnQ48Jyc39IEloDBxFXCselCkYruUQv6p0TA3P+Dmrz4wS7/AFlBMMsQ3XfGFVIOnITiTaGWg5fEpIf7zYsDf0zECPE0MOHMGqJMn3/SrSKdtEA4N84Q4JS7Ou+ewG65mxUDO5Ce60OoEG5JA=
-  file: criterion-${TRAVIS_TAG}-${TRAVIS_OS_NAME}-x86_64.tar.bz2
+  file:
+    - criterion-${TRAVIS_TAG}-${TRAVIS_OS_NAME}-x86_64.tar.bz2
+    - criterion-${TRAVIS_TAG}.tar.bz2
   on:
     repo: Snaipe/Criterion
     tags: true
     condition: $DEPLOY = true
+  api_key:
+    secure: >-
+      d3l2Ohb2FF3tSXku1d0ASR5dntdnQ48Jyc39IEloDBx
+      FXCselCkYruUQv6p0TA3P+Dmrz4wS7/AFlBMMsQ3XfG
+      FVIOnITiTaGWg5fEpIf7zYsDf0zECPE0MOHMGqJMn3/
+      SrSKdtEA4N84Q4JS7Ou+ewG65mxUDO5Ce60OoEG5JA=
