@@ -219,6 +219,7 @@ Testing malformed pattern
 
 
 Testing special char escaping
+
   $ simple.c.bin --filter='\!(escaped)' --verbose
   pattern error: Unexpected character '('
   [3]
