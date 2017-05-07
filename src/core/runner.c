@@ -198,8 +198,6 @@ void disable_unmatching(struct criterion_test_set *set)
             if (ret == 0)
                 test->data->disabled = true;
         }
-                test->data->disabled = true;
-        }
     }
     free_pattern();
 }
