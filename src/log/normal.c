@@ -39,6 +39,7 @@
 #include "string/diff.h"
 #include "config.h"
 #include "common.h"
+#include "signals/signal_names.h"
 
 #define LOG_DIFF_THRESHOLD    25
 
@@ -59,7 +60,7 @@ static msg_t msg_assert_eq_short = N_("    %1$s: %2$s[-%3$s-]%4$s%5$s{+%6$s+}%7$
 static msg_t msg_assert_param = N_("    %1$s: %2$s%3$s%4$s\n");
 static msg_t msg_theory_fail = N_("  Theory %1$s::%2$s failed with the following parameters: (%3$s)\n");
 static msg_t msg_test_timeout = N_("%1$s::%2$s: Timed out. (%3$3.2fs)\n");
-static msg_t msg_test_crash_line = N_("%1$s%2$s%3$s:%4$s%5$u%6$s: Unexpected signal caught below this line!\n");
+static msg_t msg_test_crash_line = N_("%1$s%2$s%3$s:%4$s%5$u%6$s: Unexpected signal (%7$s) caught below this line!\n");
 static msg_t msg_test_crash = N_("%1$s::%2$s: CRASH!\n");
 static msg_t msg_test_generic = N_("%1$s::%2$s: %3$s\n");
 static msg_t msg_test_other_crash = N_("%1$sWarning! The test `%2$s::%3$s` crashed during its setup or teardown.%4$s\n");
@@ -84,7 +85,7 @@ static msg_t msg_assert_eq_short = "    %s: %s[-%s-]%s%s{+%s+}%s\n";
 static msg_t msg_assert_param = "    %s: %s%s%s\n";
 static msg_t msg_theory_fail = "  Theory %s::%s failed with the following parameters: (%s)\n";
 static msg_t msg_test_timeout = "%s::%s: Timed out. (%3.2fs)\n";
-static msg_t msg_test_crash_line = "%s%s%s:%s%u%s: Unexpected signal caught below this line!\n";
+static msg_t msg_test_crash_line = "%s%s%s:%s%u%s: Unexpected signal (%s) caught below this line!\n";
 static msg_t msg_test_crash = "%s::%s: CRASH!\n";
 static msg_t msg_test_generic = "%s::%s: %s\n";
 static msg_t msg_test_other_crash = "%sWarning! The test `%s::%s` crashed during its setup or teardown.%s\n";
@@ -123,8 +124,8 @@ void normal_log_pre_init(struct criterion_suite *suite, struct criterion_test *t
 
 void normal_log_post_test(struct criterion_test_stats *stats)
 {
-    const char *format = criterion_options.measure_time ?
-        msg_post_test_timed : msg_post_test;
+    const char *format = criterion_options.measure_time
+            ? msg_post_test_timed : msg_post_test;
 
     const enum criterion_logging_level level =
             stats->test_status == CR_STATUS_FAILED ? CRITERION_IMPORTANT : CRITERION_INFO;
@@ -155,7 +156,7 @@ void normal_log_post_all(struct criterion_global_stats *stats)
 {
     size_t tested = stats->nb_tests - stats->tests_skipped;
     char *tests_crashed_color = (stats->tests_crashed) ? CR_FG_RED : CR_RESET;
-    char *tests_failed_color  = (stats->tests_failed)  ? CR_FG_RED : CR_RESET;
+    char *tests_failed_color = (stats->tests_failed)  ? CR_FG_RED : CR_RESET;
 
     criterion_pimportant(CRITERION_PREFIX_EQUALS,
             _(msg_post_all),
@@ -197,9 +198,9 @@ void normal_log_assert(struct criterion_assert_stats *stats)
         if (stats->message && *stats->message) {
             criterion_pimportant(CRITERION_PREFIX_DASHES, _(msg_desc), "");
 
-            char *dup       = strdup(stats->message);
-            char *saveptr   = NULL;
-            char *line      = strtok_r(dup, "\n", &saveptr);
+            char *dup = strdup(stats->message);
+            char *saveptr = NULL;
+            char *line = strtok_r(dup, "\n", &saveptr);
 
             do {
                 criterion_pimportant(CRITERION_PREFIX_DASHES, _(msg_desc), line);
@@ -225,9 +226,9 @@ void normal_log_assert_formatted(struct criterion_assert_stats *stats,
 {
     (void) stats;
 
-    char *dup       = strdup(formatted);
-    char *saveptr   = NULL;
-    char *line      = strtok_r(dup, "\n", &saveptr);
+    char *dup = strdup(formatted);
+    char *saveptr = NULL;
+    char *line = strtok_r(dup, "\n", &saveptr);
 
     for (; line; line = strtok_r(NULL, "\n", &saveptr)) {
         char *color;
@@ -358,7 +359,8 @@ void normal_log_test_crash(struct criterion_test_stats *stats)
     criterion_pimportant(CRITERION_PREFIX_DASHES,
             _(msg_test_crash_line),
             CR_FG_BOLD, sf ? basename_compat(stats->file) : stats->file, CR_RESET,
-            CR_FG_RED, stats->progress, CR_RESET);
+            CR_FG_RED, stats->progress, CR_RESET,
+            get_signal_name(stats->signal));
     criterion_pimportant(CRITERION_PREFIX_FAIL, _(msg_test_crash),
             stats->test->category,
             stats->test->name);
@@ -410,9 +412,9 @@ void normal_log_test_timeout(CR_UNUSED struct criterion_test_stats *stats)
 
 void normal_log_test_abort(CR_UNUSED struct criterion_test_stats *stats, const char *msg)
 {
-    char *dup       = strdup(msg);
-    char *saveptr   = NULL;
-    char *line      = strtok_r(dup, "\n", &saveptr);
+    char *dup = strdup(msg);
+    char *saveptr = NULL;
+    char *line = strtok_r(dup, "\n", &saveptr);
 
     criterion_pimportant(CRITERION_PREFIX_DASHES,
             _(msg_test_generic),
@@ -428,9 +430,9 @@ void normal_log_test_abort(CR_UNUSED struct criterion_test_stats *stats, const c
 
 void normal_log_message(enum criterion_severity severity, const char *msg)
 {
-    char *dup       = strdup(msg);
-    char *saveptr   = NULL;
-    char *line      = strtok_r(dup, "\n", &saveptr);
+    char *dup = strdup(msg);
+    char *saveptr = NULL;
+    char *line = strtok_r(dup, "\n", &saveptr);
 
     do {
         if (*line != '\0')
@@ -440,21 +442,21 @@ void normal_log_message(enum criterion_severity severity, const char *msg)
 }
 
 struct criterion_logger normal_logging = {
-    .log_pre_all            = normal_log_pre_all,
-    .log_pre_init           = normal_log_pre_init,
-    .log_pre_suite          = normal_log_pre_suite,
-    .log_assert             = normal_log_assert,
-    .log_assert_sub         = normal_log_assert_sub,
-    .log_assert_param       = normal_log_assert_param,
-    .log_assert_param_eq    = normal_log_assert_param_eq,
-    .log_assert_formatted   = normal_log_assert_formatted,
-    .log_theory_fail        = normal_log_theory_fail,
-    .log_test_timeout       = normal_log_test_timeout,
-    .log_test_crash         = normal_log_test_crash,
-    .log_test_abort         = normal_log_test_abort,
-    .log_other_crash        = normal_log_other_crash,
-    .log_abnormal_exit      = normal_log_abnormal_exit,
-    .log_post_test          = normal_log_post_test,
-    .log_post_all           = normal_log_post_all,
-    .log_message            = normal_log_message,
+    .log_pre_all          = normal_log_pre_all,
+    .log_pre_init         = normal_log_pre_init,
+    .log_pre_suite        = normal_log_pre_suite,
+    .log_assert           = normal_log_assert,
+    .log_assert_sub       = normal_log_assert_sub,
+    .log_assert_param     = normal_log_assert_param,
+    .log_assert_param_eq  = normal_log_assert_param_eq,
+    .log_assert_formatted = normal_log_assert_formatted,
+    .log_theory_fail      = normal_log_theory_fail,
+    .log_test_timeout     = normal_log_test_timeout,
+    .log_test_crash       = normal_log_test_crash,
+    .log_test_abort       = normal_log_test_abort,
+    .log_other_crash      = normal_log_other_crash,
+    .log_abnormal_exit    = normal_log_abnormal_exit,
+    .log_post_test        = normal_log_post_test,
+    .log_post_all         = normal_log_post_all,
+    .log_message          = normal_log_message,
 };
